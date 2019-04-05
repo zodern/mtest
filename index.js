@@ -97,7 +97,12 @@ function startMeteor (port) {
 }
 
 (async () => {
-  const port = await getPort({  port: 10015 });
+  const ports = []
+  for(let i = 10000; i < 12000; i++) {
+    ports.push(i);
+  }
+
+  const port = await getPort({  port: ports.sort(() => Math.random() - 0.5) });
   startMeteor(port);
 })();
 
