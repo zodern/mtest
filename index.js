@@ -12,6 +12,7 @@ const argv = yargs
   .boolean('once')
   .boolean('inspect')
   .boolean('inspect-brk')
+  .number('port')
   .argv;
 
 if (!argv.package) {
@@ -106,7 +107,7 @@ function startMeteor (port) {
     ports.push(i);
   }
 
-  const port = await getPort({  port: ports.sort(() => Math.random() - 0.5) });
+  const port = argv.port ? argv.port : await getPort({  port: ports.sort(() => Math.random() - 0.5) });
   startMeteor(port);
 })();
 
