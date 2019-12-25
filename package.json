@@ -1,6 +1,6 @@
 {
   "name": "@zodern/mtest",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Test Meteor packages with Tiny Test in the terminal",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "get-port": "^4.1.0",
-    "puppeteer": "1.9.0",
+    "puppeteer": "^1.20.0",
     "tree-kill": "^1.2.1",
     "yargs": "^12.0.5"
   },
