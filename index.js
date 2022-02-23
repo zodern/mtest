@@ -123,7 +123,15 @@ function testsDone (page) {
       return TEST_STATUS.DONE;
     }
 
-    return typeof DONE !== 'undefined' && DONE;
+    if (typeof DONE !== 'undefined') {
+      return DONE;
+    }
+
+    if (typeof Package !== 'undefined' && Package['test-in-console']) {
+      return Package['test-in-console'].TEST_STATUS.DONE;
+    }
+
+    return false;
   });
 }
 
