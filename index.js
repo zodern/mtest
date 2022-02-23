@@ -119,14 +119,6 @@ function sleep(ms) {
 
 function testsDone (page) {
   return page.evaluate(() => {
-    if (typeof TEST_STATUS !== 'undefined') {
-      return TEST_STATUS.DONE;
-    }
-
-    if (typeof DONE !== 'undefined') {
-      return DONE;
-    }
-
     if (typeof Package !== 'undefined' && Package['test-in-console']) {
       return Package['test-in-console'].TEST_STATUS.DONE;
     }
@@ -137,13 +129,7 @@ function testsDone (page) {
 
 function checkFailures (page) {
   return page.evaluate(function () {
-    if (typeof TEST_STATUS !== 'undefined') {
-      return TEST_STATUS.FAILURES;
-    }
-    if (typeof FAILURES === 'undefined') {
-      return 1;
-    }
-    return 0;
+    return Package['test-in-console'].TEST_STATUS.FAILURES;
   });
 }
 
