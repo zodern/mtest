@@ -8,6 +8,7 @@ const puppeteer = require('puppeteer');
 const argv = yargs
   .string('package')
   .string('release')
+  .string('settings')
   .string('test-app-path')
   .boolean('once')
   .boolean('inspect')
@@ -67,7 +68,10 @@ function startMeteor (port) {
     args.push('--inspect-brk');
   }
   if (argv.testAppPath) {
-    args.push('--test-app-path', argv.testAppPath)
+    args.push('--test-app-path', argv.testAppPath);
+  }
+  if (argv.settings) {
+    args.push('--settings', argv.settings);
   }
   
   if (/^win/.test(process.platform)) {
