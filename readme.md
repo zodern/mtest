@@ -15,4 +15,13 @@ mtest --package <package name>
 The package's client tests are run in headless Chrome. The test results are shown in the terminal.
 
 By default, the tests re-run when a file changes. To disable this, use the `--once` option.
+
+To reuse Meteor's local build cache between runs, use the `--cache` option:
+```bash
+mtest --package <package name> --cache
+```
+
+The local MongoDB data from the previous run is cleared at the start of each cached run.
+Concurrent runs for the same package with the `--cache` option is not supported.
+
 A local checkout of Meteor can be used with the `--meteor-path` option.

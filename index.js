@@ -14,6 +14,7 @@ const argv = yargs
   .boolean('once')
   .boolean('inspect')
   .boolean('inspect-brk')
+  .boolean('cache')
   .number('port')
   .argv;
 
@@ -45,6 +46,11 @@ process.on('exit', () => {
   exit();
 });
 
+function sha1(text) {
+  const crypto = require('crypto');
+  return crypto.createHash('sha1').update(text).digest('hex');
+}
+
 function startMeteor (port) {
   let executable = argv.meteorPath || 'meteor';
   let args = [
@@ -55,6 +61,7 @@ function startMeteor (port) {
     port,
     argv.package
   ];
+  let env = Object.assign({}, process.env);
 
   if (argv.once) {
     args.push('--once');
@@ -74,6 +81,27 @@ function startMeteor (port) {
   if (argv.settings) {
     args.push('--settings', argv.settings);
   }
+
+  if (argv.cache) {
+    const path = require('path');
+    const os = require('os');
+    const fs = require('fs');
+
+    let pathHash = sha1(JSON.stringify({
+      cwd: process.cwd(),
+      testAppPath: argv.testAppPath,
+    }));
+
+    let folder = path.resolve(os.tmpdir(), `mtest-1-${pathHash}`);
+
+    fs.mkdirSync(folder, { recursive: true });
+
+    fs.rmSync(path.join(folder, 'db'), { recursive: true, force: true });
+    fs.rmSync(path.join(folder, 'dbs'), { recursive: true, force: true });
+
+    env.METEOR_LOCAL_DIR = folder;
+    console.log(`Using ${folder} for build cache`);
+  }
   
   if (/^win/.test(process.platform)) {
     args = ['/c', executable].concat(args);
@@ -83,6 +111,7 @@ function startMeteor (port) {
   meteor = spawn(executable, args, {
     cwd: process.cwd(),
     stdio: 'pipe',
+    env
   });
   meteor.stdout.pipe(process.stdout);
   meteor.stderr.pipe(process.stderr);
