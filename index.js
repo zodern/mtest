@@ -23,27 +23,48 @@ if (!argv.package) {
   process.exit(1);
 }
 
-let meteor;
-let browser;
-let exiting = false;
+async function killAsync (pid) {
+  return new Promise((resolve, reject) => {
+    return kill(pid, (error) => {
+      if (error) {
+        return reject(error);
+      }
 
-function exit() {
-  exiting = true;
-  if (meteor) {
-    kill(meteor.pid);
-  }
-  if (browser) {
-    browser.close();
-    browser = null;
-  }
+      resolve();
+    });
+  });
 }
 
-process.on("SIGINT", function() {
-  exit();
-  process.exit();
+let meteor;
+let browser;
+let exitPromise;
+
+async function exit() {
+  if (exitPromise) {
+    return exitPromise;
+  }
+
+  let promises = [];
+  if (meteor) {
+    promises.push(killAsync(meteor.pid));
+  }
+  if (browser) {
+    promises.push(browser.close());
+    browser = null;
+  }
+
+  exitPromise = Promise.allSettled(promises);
+
+  return exitPromise;
+}
+
+process.on("SIGINT", async function() {
+  await exit();
+  process.exit(130);
 });
-process.on('exit', () => {
-  exit();
+process.on("SIGTERM", async function() {
+  await exit();
+  process.exit(143);
 });
 
 function sha1(text) {
@@ -119,12 +140,17 @@ function startMeteor (port) {
     var data = data.toString();
     if(data.match(/10015|test-in-console listening/)) {
       meteor.stdout.removeListener('data', meteorRunning);
-      startChrome(port);
+      startChrome(port).catch(async (err) => {
+        console.error(`Error running chrome:`);
+        console.error(err);
+        await exit();
+        process.exit(1);
+      });
     }
   });
-  
+
   meteor.on('close', code => {
-    if (exiting) {
+    if (exitPromise) {
       return;
     }
 
@@ -187,7 +213,7 @@ async function startChrome(port) {
 
   let tries = 0;
   while(true) {
-    if (exiting) {
+    if (exitPromise) {
       return;
     }
     if (tries > 10) {
