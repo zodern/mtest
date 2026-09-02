@@ -10,6 +10,7 @@ const argv = yargs
   .string('release')
   .string('settings')
   .string('test-app-path')
+  .string('meteor-path')
   .boolean('once')
   .boolean('inspect')
   .boolean('inspect-brk')
@@ -45,7 +46,7 @@ process.on('exit', () => {
 });
 
 function startMeteor (port) {
-  let executable = 'meteor';
+  let executable = argv.meteorPath || 'meteor';
   let args = [
     'test-packages',
     '--driver-package',
@@ -75,8 +76,8 @@ function startMeteor (port) {
   }
   
   if (/^win/.test(process.platform)) {
+    args = ['/c', executable].concat(args);
     executable = process.env.comspec || 'cmd.exe';
-    args = ['/c', 'meteor'].concat(args);
   }
   
   meteor = spawn(executable, args, {

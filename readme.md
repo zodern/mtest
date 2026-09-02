@@ -15,3 +15,4 @@ mtest --package <package name>
 The package's client tests are run in headless Chrome. The test results are shown in the terminal.
 
 By default, the tests re-run when a file changes. To disable this, use the `--once` option.
+A local checkout of Meteor can be used with the `--meteor-path` option.
