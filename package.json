@@ -2,17 +2,21 @@
   "name": "@zodern/mtest",
   "version": "0.5.1",
   "description": "Test Meteor packages with Tiny Test in the terminal",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "get-port": "^4.1.0",
-    "puppeteer": "^13.4.0",
+    "get-port": "^7.2.0",
+    "puppeteer": "^25.9.0",
     "tree-kill": "^1.2.2",
-    "yargs": "^15.4.1"
+    "yargs": "^18.1.0"
   },
   "bin": {
     "mtest": "./index.js"

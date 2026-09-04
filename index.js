@@ -1,11 +1,15 @@
 #! /usr/bin/env node
-const yargs = require('yargs');
-const { spawn } = require('child_process');
-const kill = require('tree-kill');
-const getPort = require('get-port');
-const puppeteer = require('puppeteer');
+import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import getPort from 'get-port';
+import puppeteer from 'puppeteer';
+import kill from 'tree-kill';
+import yargs from 'yargs';
 
-const argv = yargs
+const argv = yargs(process.argv.slice(2))
   .string('package')
   .string('release')
   .string('settings')
@@ -16,12 +20,7 @@ const argv = yargs
   .boolean('inspect-brk')
   .boolean('cache')
   .number('port')
-  .argv;
-
-if (!argv.package) {
-  console.warn('no package name provided');
-  process.exit(1);
-}
+  .parse();
 
 async function killAsync (pid) {
   return new Promise((resolve, reject) => {
@@ -68,8 +67,7 @@ process.on("SIGTERM", async function() {
 });
 
 function sha1(text) {
-  const crypto = require('crypto');
-  return crypto.createHash('sha1').update(text).digest('hex');
+  return createHash('sha1').update(text).digest('hex');
 }
 
 function startMeteor (port) {
@@ -104,10 +102,6 @@ function startMeteor (port) {
   }
 
   if (argv.cache) {
-    const path = require('path');
-    const os = require('os');
-    const fs = require('fs');
-
     let pathHash = sha1(JSON.stringify({
       cwd: process.cwd(),
       testAppPath: argv.testAppPath,
@@ -161,7 +155,13 @@ function startMeteor (port) {
   });
 }
 
-(async () => {
+async function main() {
+  if (!argv.package) {
+    console.warn('no package name provided');
+    process.exitCode = 1;
+    return;
+  }
+
   const ports = []
   for(let i = 10000; i < 12000; i++) {
     ports.push(i);
@@ -169,7 +169,12 @@ function startMeteor (port) {
 
   const port = argv.port ? argv.port : await getPort({  port: ports.sort(() => Math.random() - 0.5) });
   startMeteor(port);
-})();
+}
+
+main().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
 
 function sleep(ms) {
   return new Promise(resolve => {

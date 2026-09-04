@@ -2,6 +2,8 @@
 
 Small cli tool to test Meteor packages with Tiny Test in the terminal.
 
+Requires Node.js 22.12 or newer.
+
 Install with
 ```bash
 npm i -g @zodern/mtest
