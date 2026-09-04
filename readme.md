@@ -15,6 +15,7 @@ mtest --package <package name>
 ```
 
 The package's client tests are run in headless Chrome. The test results are shown in the terminal.
+If your package manager blocks Puppeteer's install script, mtest downloads the compatible Chrome build.
 
 By default, the tests re-run when a file changes. To disable this, use the `--once` option.
 

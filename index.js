@@ -1,9 +1,11 @@
 #! /usr/bin/env node
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import getPort from 'get-port';
 import puppeteer from 'puppeteer';
 import kill from 'tree-kill';
@@ -22,6 +24,8 @@ const argv = yargs(process.argv.slice(2))
   .number('port')
   .parse();
 
+const execFileAsync = promisify(execFile);
+
 async function killAsync (pid) {
   return new Promise((resolve, reject) => {
     return kill(pid, (error) => {
@@ -36,6 +40,7 @@ async function killAsync (pid) {
 
 let meteor;
 let browser;
+let installer;
 let exitPromise;
 
 async function exit() {
@@ -46,6 +51,10 @@ async function exit() {
   let promises = [];
   if (meteor) {
     promises.push(killAsync(meteor.pid));
+  }
+  if (installer) {
+    promises.push(killAsync(installer.pid));
+    installer = null;
   }
   if (browser) {
     promises.push(browser.close());
@@ -70,7 +79,67 @@ function sha1(text) {
   return createHash('sha1').update(text).digest('hex');
 }
 
-function startMeteor (port) {
+async function ensureBrowserInstalled() {
+  const configuration = await puppeteer.configuration();
+  const browserName = configuration.defaultBrowser;
+
+  if (configuration.executablePath || configuration[browserName]?.skipDownload) {
+    return;
+  }
+
+  const executablePath = await puppeteer.executablePath();
+  try {
+    await fs.promises.access(executablePath, fs.constants.X_OK);
+    return;
+  } catch {
+    // Many package managers don't run lifecycle scripts
+    // Download now instead
+  }
+
+  const packageUrl = import.meta.resolve('puppeteer/package.json');
+  const packageJson = JSON.parse(
+    await fs.promises.readFile(new URL(packageUrl), 'utf8')
+  );
+  const bin = typeof packageJson.bin === 'string'
+    ? packageJson.bin
+    : packageJson.bin?.puppeteer;
+
+  if (!bin) {
+    throw new Error('Unable to find the puppeteer cli to download the browser with');
+  }
+
+  const cliPath = fileURLToPath(new URL(bin, packageUrl));
+
+  console.log(`${browserName} is not installed; downloading it now...`);
+
+  const installing = execFileAsync(process.execPath, [
+    cliPath,
+    'browsers',
+    'install',
+    browserName
+  ]);
+
+  installer = installing.child;
+
+  try {
+    await installing;
+  } catch (error) {
+    // The cli prints its whole help text before the error, so drop everything
+    // before the error itself
+    const output = (error.stderr || '').trim();
+    const start = output.search(/^Error:/m);
+    const details = start === -1 ? output : output.slice(start);
+
+    // Falls back to the message for failures with no output, such as a bad spawn
+    throw new Error(details || error.message, { cause: error });
+  } finally {
+    installer = null;
+  }
+
+  console.log(`${browserName} installed.`);
+}
+
+function startMeteor (port, browserReady) {
   let executable = argv.meteorPath || 'meteor';
   let args = [
     'test-packages',
@@ -134,7 +203,13 @@ function startMeteor (port) {
     var data = data.toString();
     if(data.match(/10015|test-in-console listening/)) {
       meteor.stdout.removeListener('data', meteorRunning);
-      startChrome(port).catch(async (err) => {
+      browserReady.then(isReady => {
+        if (!isReady || exitPromise) {
+          return;
+        }
+
+        return startChrome(port);
+      }).catch(async (err) => {
         console.error(`Error running chrome:`);
         console.error(err);
         await exit();
@@ -168,7 +243,22 @@ async function main() {
   }
 
   const port = argv.port ? argv.port : await getPort({  port: ports.sort(() => Math.random() - 0.5) });
-  startMeteor(port);
+  const browserReady = ensureBrowserInstalled().then(
+    () => true,
+    async error => {
+      if (exitPromise) {
+        return false;
+      }
+
+      console.error('Error installing browser:');
+      console.error(error.message);
+      await exit();
+      process.exitCode = 1;
+      return false;
+    }
+  );
+
+  startMeteor(port, browserReady);
 }
 
 main().catch(error => {

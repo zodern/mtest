@@ -7,6 +7,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "puppeteer": {
+    "chrome-headless-shell": {
+      "skipDownload": true
+    }
+  },
   "engines": {
     "node": ">=22.12.0"
   },
@@ -14,7 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "get-port": "^7.2.0",
-    "puppeteer": "^25.9.0",
+    "puppeteer": "^25.10.0",
     "tree-kill": "^1.2.2",
     "yargs": "^18.1.0"
   },
